@@ -31,3 +31,49 @@ constellation:
   - topo/topo_series.npz
   - topo/potential_sample.npz
   note_coverage: 53°倾角星座覆盖±53°带(97.6%人口), 高纬无覆盖属预期; 5°仰角达96%
+demand:
+  n_timeslots: 56966
+  n_buckets: 97
+  n_hotspot_pairs: 10
+  od_mix:
+    random: 0.4
+    gravity: 0.4
+    hotspot: 0.2
+  flow_type_counts:
+  - 951915225.0903561
+  - 951915225.090356
+  - 475957612.545178
+  k0: 1.3553532661981584
+  util_stats:
+    k0: 1.3553532661981584
+    util_median: 0.03994267831827109
+    util_p95: 0.7999986766951904
+    util_mean: 0.17493479205027196
+    util_max: 3.2805969672352346
+    n_samples: 20104
+    note: P3 最短路代理标定，P4 完整仿真后可 refine
+  split:
+    train:
+    - 0
+    - 34180
+    val:
+    - 34180
+    - 42724
+    calib:
+    - 42724
+    - 48421
+    test:
+    - 48421
+    - 56966
+  scenarios:
+  - baseline
+  - burst
+  interim_files:
+  - demand/commodity_baseline.npz
+  - demand/commodity_burst.npz
+  - demand/base_demand.npz
+  - demand/split.pkl
+  - demand/k0.json
+  - demand/interventions.json
+  - demand/hotspot_pairs.json
+  note_k0: P3 最短路代理标定 P95≈0.8；中位低反映热点集中，P4 ECMP/MAPPO refine
