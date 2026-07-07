@@ -30,3 +30,6 @@ logs/
 !models/.gitkeep
 !results/metrics/.gitkeep
 !logs/.gitkeep
+
+# 数据字典是可复现性关键文档，需入库（其余 interim 产物忽略）
+!data/interim/DATA_DICT.yaml
