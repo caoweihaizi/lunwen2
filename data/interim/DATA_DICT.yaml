@@ -1,85 +1,33 @@
-generated_at: '2026-07-07 14:50:04'
-geant:
-  network: geant
-  source_file: directed-geant-uhlig-15min-over-4months-ALL-native.tgz
-  sha256: 92d72a808d6de9d26be66844c098d3f32d5b9bb6c69af170e82b73118faef0df
-  n_matrices_actual: 10773
-  n_matrices_nominal: 11460
-  n_nodes: 22
-  n_demands_max: 462
-  granularity_min: 15
-  unit: MBITPERSEC
+constellation:
+  n_sat: 66
+  walker:
+    planes: 6
+    sats_per_plane: 11
+    f: 2
+    inclination_deg: 53.0
+    altitude_km: 550.0
+  period_min: 95.50217108184887
+  min_elevation_deg: 5.0
+  link_capacity_gbps: 10.0
+  max_isl_distance_km: 5000.0
+  n_timeslots: 56966
   time_start: '2005-05-04T15:30:00'
   time_end: '2005-08-31T07:45:00'
-  n_time_gaps: 6
-  resampled_to_min: 3
-  resampled_len: 56966
-  clean_stats:
-    percentile: 99.9
-    threshold: 375065.1533554321
-    n_clipped: 11
-    orig_min: 93.019057
-    orig_max: 473578395.93236995
-    orig_median: 41635.544127
-    clip_min: 93.019057
-    clip_max: 375065.1533554321
-    clip_median: 41635.544127
+  edges_mean: 104.0054242881719
+  edges_min: 103
+  edges_max: 108
+  coverage_rate_samples:
+  - 0.96405
+  - 0.97725
+  - 0.9659
+  - 0.9767
+  coverage_half_angle_deg: 18.504491365855035
+  potential_max_hops: 9
+  prop_delay_ms_min: 6.0377326011657715
+  prop_delay_ms_max: 16.657695770263672
   interim_files:
-  - geant/traffic.npz
-  - geant/meta.pkl
-  - geant/S_original.npz
-  - geant/S_clean.npz
-  - geant/S_resampled.npz
-  - geant/resampled_times.pkl
-  - geant/p_od.npz
-  - geant/clean_stats.json
-abilene:
-  network: abilene
-  source_file: directed-abilene-zhang-5min-over-6months-ALL-native.tgz
-  sha256: 2f311130d77e40db88da1aa6db8055b6fce8d077bf4bae87398563e1b84e70ce
-  n_matrices_actual: 48096
-  n_matrices_nominal: 48096
-  n_nodes: 12
-  n_demands_max: 132
-  granularity_min: 5
-  unit: MBITPERSEC
-  time_start: '2004-03-01T00:00:00'
-  time_end: '2004-09-10T23:55:00'
-  n_time_gaps: 4
-  resampled_to_min: 3
-  resampled_len: 93119
-  clean_stats:
-    percentile: 99.9
-    threshold: 10011.867085880027
-    n_clipped: 49
-    orig_min: 968.257649
-    orig_max: 11888.954211
-    orig_median: 2576.537476
-    clip_min: 968.257649
-    clip_max: 10011.867085880027
-    clip_median: 2576.537476
-  interim_files:
-  - abilene/traffic.npz
-  - abilene/meta.pkl
-  - abilene/S_original.npz
-  - abilene/S_clean.npz
-  - abilene/S_resampled.npz
-  - abilene/resampled_times.pkl
-  - abilene/p_od.npz
-  - abilene/clean_stats.json
-worldpop:
-  source_file: global_pop_2025_CN_1km_R2025A_v1.tif
-  sha256: 478d81441d39b0548c6f1a1a1d713ac7a2bf32483671c4fe0864f2d8f16cc56c
-  width: 43200
-  height: 17280
-  crs: EPSG:4326
-  nodata: -99999.0
-  resolution_deg: 0.0083333333
-  n_valid_pixels: 51241958
-  total_pop: 8195439313.76069
-  weights_sum: 1.0
-  utc_offset_min: -11.999722480773926
-  utc_offset_max: 11.999722480773926
-  interim_files:
-  - worldpop/weights.npz
-  - worldpop/meta.pkl
+  - topo/positions.npz
+  - topo/times.pkl
+  - topo/topo_series.npz
+  - topo/potential_sample.npz
+  note_coverage: 53°倾角星座覆盖±53°带(97.6%人口), 高纬无覆盖属预期; 5°仰角达96%

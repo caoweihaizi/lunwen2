@@ -39,13 +39,17 @@ worldpop:
 # ——— 星座（P2）———
 constellation:
   n_sat: 66
-  # Walker 参数占位，P2 回填
+  # Walker Delta 6/66/F=2（Iridium 类，P2 决策，技术大纲未指定 F）
   walker:
     planes: 6
     sats_per_plane: 11
     inclination_deg: 53.0
     altitude_km: 550
+    f: 2
   neighbors: 4
+  min_elevation_deg: 5.0     # 地面覆盖最小仰角（P2 决策：10°仅84%覆盖，5°达95%+）
+  link_capacity_gbps: 10.0   # 星间链路容量，P3 标定可调
+  max_isl_distance_km: 5000.0  # ISL 最大距离阈值
 
 # ——— OD 标定（P3）———
 demand:
