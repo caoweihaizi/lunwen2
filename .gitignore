@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# 原始外部数据（大文件，不入库；下载链接与 SHA256 见 技术大纲.md §4.1.4 与各阶段数据字典）
+directed-geant-uhlig-15min-over-4months-ALL-native.tgz
+directed-abilene-zhang-5min-over-6months-ALL-native.tgz
+global_pop_2025_CN_1km_R2025A_v1.tif
+data/raw/
+
+# 数据与产物（大文件不入库）
+data/interim/
+data/processed/
+models/
+results/metrics/*.json
+logs/
+*.ckpt
+*.pt
+*.pth
+
+# 保留目录占位
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+!models/.gitkeep
+!results/metrics/.gitkeep
+!logs/.gitkeep

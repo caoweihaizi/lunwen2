@@ -1,0 +1,19 @@
+name: mucar
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.11
+  - numpy>=1.26
+  - scipy>=1.11
+  - pandas>=2.1
+  - rasterio>=1.3
+  - networkx>=3.2
+  - matplotlib>=3.8
+  - pyyaml>=6.0
+  - tqdm>=4.66
+  - pip
+  - pip:
+      - torch>=2.2
+      - hydra-core>=1.3
+      - omegaconf>=2.3
