@@ -3,10 +3,14 @@
 # 已定值取自 技术大纲.md §4.1.4；未定项留占位注释，由对应阶段回填。
 
 seed:
+  # 种子语义：一次"5 种子实验"中，第 s 次运行令
+  #   seed.data = seed.model = seed.routing = s
+  # 即一个 eval seed 同步驱动全部随机源（见 完整工作流.md §4）。
+  # run.sh <stage> <seed> 会同时覆盖下面三条链。
   data: 0           # 数据生成种子链
   model: 0          # 模型初始化种子链
   routing: 0        # 路由训练种子链
-  eval_seeds: [0, 1, 2, 3, 4]  # 5 个独立实验种子（7.1 / 7.10）
+  eval_seeds: [0, 1, 2, 3, 4]  # 5 个独立实验种子（7.1 / 7.10），逐个跑 run.sh <stage> s
 
 # ——— 数据时间与空间（P1–P3）———
 data:
