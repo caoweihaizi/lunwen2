@@ -417,9 +417,9 @@ observed:
   note: 流式逐 shard 注入；block 跨 shard 用全局事件列表；真值与观测并存
 predict_model:
   checkpoint: models/predict/predict_v1.pt
-  n_params: 28050
-  infer_ms: 7.1923017501831055
-  best_val_loss: 0.25750412241617837
+  n_params: 204306
+  infer_ms: 6.489248275756836
+  best_val_loss: 0.14726507918039958
   crossing_rate: 0.0
   normalize_mean:
   - 7871.2490234375
@@ -429,5 +429,5 @@ predict_model:
   - 30862.224609375
   - 0.13664624094963074
   - 1.0
-  architecture: GRU-D + GRU(hidden=64) + 单调分位数头
+  architecture: GRU-D + GRU(hidden=128,2层) + 单调分位数头 + LR调度 + 梯度裁剪
   note: 轻量版；GAT 简化为边级 MLP（单边样本无图结构），完整 GAT 在 P10

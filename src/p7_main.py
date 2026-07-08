@@ -58,10 +58,11 @@ def main() -> int:
                               normalize=train_ds.normalize)
     log.info(f"验证集: {len(val_ds)} 样本")
 
-    # 训练
-    log.info("开始训练...")
-    model, stats = train_model(cfg, train_ds, val_ds, log, epochs=20,
-                               batch_size=256, lr=1e-3, device=device)
+    # 训练（调参版：hidden=128, 2层GRU, 50epoch, LR调度, 梯度裁剪）
+    log.info("开始训练（调参版 hidden=128 2层GRU 50epoch LR调度）...")
+    model, stats = train_model(cfg, train_ds, val_ds, log, epochs=50,
+                               batch_size=256, lr=1e-3, device=device,
+                               hidden=128, n_gru_layers=2)
 
     # 落盘 checkpoint
     ckpt_dir = paths["models"] / "predict"
@@ -69,7 +70,8 @@ def main() -> int:
     ckpt_path = ckpt_dir / "predict_v1.pt"
     torch.save({"state_dict": model.state_dict(),
                 "normalize": train_ds.normalize,
-                "config": {"n_feat": 12, "hidden": 64, "n_h": 2, "h_max": 3,
+                "config": {"n_feat": 12, "hidden": 128, "n_h": 2, "h_max": 3,
+                           "n_gru_layers": 2,
                            "W": int(cfg.data.history_window_W),
                            "H": list(cfg.data.forecast_horizons)}},
                ckpt_path)
@@ -109,7 +111,7 @@ def main() -> int:
         "crossing_rate": float(stats["final_crossing_rate"]),
         "normalize_mean": train_ds.normalize["mean"].tolist(),
         "normalize_std": train_ds.normalize["std"].tolist(),
-        "architecture": "GRU-D + GRU(hidden=64) + 单调分位数头",
+        "architecture": "GRU-D + GRU(hidden=128,2层) + 单调分位数头 + LR调度 + 梯度裁剪",
         "note": "轻量版；GAT 简化为边级 MLP（单边样本无图结构），完整 GAT 在 P10",
     }
     with open(dd_path, "w", encoding="utf-8") as f:

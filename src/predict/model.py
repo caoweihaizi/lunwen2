@@ -56,13 +56,12 @@ class PredictModel(nn.Module):
     输出: quantiles (B, n_H, 3) [q05, q50, q95] 每个预测时域
     """
 
-    def __init__(self, n_feat=12, hidden=64, n_h=2, h_max=3):
+    def __init__(self, n_feat=12, hidden=64, n_h=2, h_max=3, n_gru_layers=1):
         super().__init__()
         self.grud = GRUDRecovery(n_feat)
-        # 提取 mask/age 作为显式特征（已在 x 中，列3-8）
-        # GRU 编码时序
         self.gru = nn.GRU(input_size=n_feat, hidden_size=hidden,
-                          batch_first=True, num_layers=1)
+                          batch_first=True, num_layers=n_gru_layers,
+                          dropout=0.1 if n_gru_layers > 1 else 0)
         # 未来计划编码
         self.future_mlp = nn.Linear(3, hidden)
         # 解码
@@ -87,16 +86,16 @@ class PredictModel(nn.Module):
         age = x[..., 6:9]    # age
         x_rec = self.grud(x, mask, age)
         # GRU 编码
-        out, h = self.gru(x_rec)  # out: (B,W,hidden), h: (1,B,hidden)
-        feat = h.squeeze(0)  # (B, hidden)
+        out, h = self.gru(x_rec)  # out: (B,W,hidden), h: (n_layers,B,hidden)
+        feat = h[-1]  # 取最后一层 (B, hidden)
         # 未来计划：取最后一个时域（h=H_max）
         fut_feat = self.future_mlp(future[:, -1, :])  # (B, hidden)
         combined = torch.cat([feat, fut_feat], dim=-1)  # (B, 2*hidden)
         dec = self.decoder(combined)  # (B, hidden)
         raw = self.quantile_head(dec)  # (B, n_h*3)
         raw = raw.view(-1, self.n_h, 3)  # (B, n_h, 3)
-        # 单调头：y05=softplus(z0), y50=y05+softplus(z1), y95=y50+softplus(z2)
-        q05 = torch.nn.functional.softplus(raw[..., 0])
+        # 单调头：q05 可负（标准化后标签有负值），q50/q95 用 softplus 增量保证单调
+        q05 = raw[..., 0]  # 可负
         q50 = q05 + torch.nn.functional.softplus(raw[..., 1])
         q95 = q50 + torch.nn.functional.softplus(raw[..., 2])
         quantiles = torch.stack([q05, q50, q95], dim=-1)  # (B, n_h, 3)

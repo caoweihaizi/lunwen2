@@ -10,10 +10,13 @@ from .model import PredictModel, pinball_loss
 from .dataset import LinkStateDataset
 
 
-def train_model(cfg, train_ds, val_ds, log, epochs=20, batch_size=256, lr=1e-3,
-                device="mps"):
-    model = PredictModel(n_feat=12, hidden=64, n_h=2, h_max=3).to(device)
+def train_model(cfg, train_ds, val_ds, log, epochs=50, batch_size=256, lr=1e-3,
+                device="mps", hidden=128, n_gru_layers=2):
+    model = PredictModel(n_feat=12, hidden=hidden, n_h=2, h_max=3,
+                         n_gru_layers=n_gru_layers).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        opt, mode="min", factor=0.5, patience=3, min_lr=1e-5)
 
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
                               num_workers=0)
@@ -33,6 +36,7 @@ def train_model(cfg, train_ds, val_ds, log, epochs=20, batch_size=256, lr=1e-3,
             loss = pinball_loss(pred, y)
             opt.zero_grad()
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()
             train_loss += loss.item() * len(x)
             n += len(x)
@@ -48,15 +52,15 @@ def train_model(cfg, train_ds, val_ds, log, epochs=20, batch_size=256, lr=1e-3,
                 pred = model(x, future)
                 val_loss += pinball_loss(pred, y).item() * len(x)
                 nv += len(x)
-                # crossing rate
                 q05, q50, q95 = pred[..., 0], pred[..., 1], pred[..., 2]
                 crossing += int(((q05 > q50 + 1e-6) | (q50 > q95 + 1e-6)).sum())
                 crossing_tot += pred[..., 0].numel()
         val_loss /= max(nv, 1)
         crossing_rate = crossing / max(crossing_tot, 1)
+        scheduler.step(val_loss)
         dt = time.time() - t0
         log.info(f"  epoch {ep+1}/{epochs}: train {train_loss:.4f} val {val_loss:.4f} "
-                 f"crossing {crossing_rate:.4f} {dt:.0f}s")
+                 f"crossing {crossing_rate:.4f} lr {opt.param_groups[0]['lr']:.1e} {dt:.0f}s")
         history.append({"epoch": ep + 1, "train_loss": train_loss,
                         "val_loss": val_loss, "crossing_rate": crossing_rate})
         if val_loss < best_val:
