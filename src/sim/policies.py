@@ -98,51 +98,63 @@ class QueueAwareStochasticPolicy:
 
     c_{ij,d,t} = α·φ(j,d) + β·ρ_{ij,t} + γ·q_{ij,t} + η·δ_{ij,t}
     P(j|i,d,t) = softmax(-c/T) over valid candidates.
+
+    候选范围：势值下降（最优）或相等（带惩罚）的邻居。66 星稀疏拓扑下
+    势值下降邻居常唯一，扩大到相等邻居让队列状态能把流量推离拥塞链路。
+    注：势值严格下降是 P10 action masking 的约束（§6.3），离线策略不受此限。
+
+    代价归一化：φ 归一到 [0,1]（除以 max hops），ρ/q 已在 [0,1]，δ 归一到 [0,1]。
     stateful: 需当前利用率 ρ、队列 q。
     """
 
-    def __init__(self, alpha=1.0, beta=1.0, gamma=0.5, eta=0.1, T=1.0):
+    def __init__(self, alpha=1.0, beta=2.0, gamma=1.0, eta=0.3, T=0.3,
+                 equal_potential_penalty=0.5):
         self.name = "queue_aware"
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
         self.eta = eta
         self.T = T
+        self.eq_pen = equal_potential_penalty
 
     def prepare(self, net, delays_unused):
         self.hops = all_pairs_hops(net.adj)
         self.phi = self.hops.astype(np.float64)
+        self.max_hops = max(float(self.hops.max()), 1.0)
+        self.max_delay = max(float(max(net.link_delay) if net.link_delay else 1.0), 1.0)
 
     def decide(self, net, commodity_active, t, rng):
         out = {}
         adj = net.adj
-        # 当前利用率/队列（归一化）
-        cap = net.links[0].capacity if net.links else 1.0
         for (i, d) in commodity_active:
             if i == d:
                 out[(i, d)] = {}
                 continue
             phi_d = self.hops[:, d]
-            target = phi_d[i] - 1
-            cands = [j for j in np.where(adj[i])[0] if phi_d[j] == target]
+            cur = phi_d[i]
+            # 候选：势值下降（target=cur-1）或相等（cur）的邻居
+            cands = []
+            for j in np.where(adj[i])[0]:
+                if phi_d[j] == cur - 1:
+                    cands.append((j, 0.0))  # 下降，无惩罚
+                elif phi_d[j] == cur:
+                    cands.append((j, self.eq_pen))  # 相等，带惩罚
             if not cands:
                 out[(i, d)] = {}
                 continue
-            # 算每个候选的代价
+            # 算每个候选的归一化代价
             costs = []
-            for j in cands:
+            for j, pen in cands:
                 lk = net.get_link(i, j)
-                rho = lk.queue / max(lk.capacity, 1e-9)  # 利用率近似
-                q = lk.queue / max(lk.buffer, 1e-9)
-                delta = net.link_delay[net.edge_idx[(i, j)]]
-                c = (self.alpha * phi_d[j] + self.beta * rho
-                     + self.gamma * q + self.eta * delta)
+                rho = lk.queue / max(lk.capacity, 1e-9)  # [0,1]
+                q = lk.queue / max(lk.buffer, 1e-9)      # [0,1]
+                delta = net.link_delay[net.edge_idx[(i, j)]] / self.max_delay  # [0,1]
+                phi_norm = phi_d[j] / self.max_hops      # [0,1]
+                c = (self.alpha * phi_norm + self.beta * rho
+                     + self.gamma * q + self.eta * delta + pen)
                 costs.append(c)
             costs = np.array(costs)
-            # 软max 采样
             p = np.exp(-costs / self.T)
             p = p / p.sum()
-            # 采样一个下一跳（stochastic）——但为分流记录，按概率作为 split_ratio
-            # 技术大纲：按温度采样。这里输出概率作为 split_ratio（期望分流）
-            out[(i, d)] = {int(j): float(p[k]) for k, j in enumerate(cands)}
+            out[(i, d)] = {int(j): float(p[k]) for k, (j, _) in enumerate(cands)}
         return out

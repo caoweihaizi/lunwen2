@@ -97,14 +97,21 @@ def main() -> int:
 
     sim = FlowLevelSimulator(cfg, cfg.data.timeslot_minutes)
 
-    # 1. refine k0
-    log.info("refine k0 (ECMP, 目标 P95≈0.45)...")
-    factor, k0_stats = refine_k0(cb_base, el, ed, de, times, cfg, target_p95=0.45, sample_slots=1000)
-    new_k0 = float(cfg.demand.k0) * factor
-    log.info(f"refine: factor={factor:.4f} 新k0={new_k0:.4f} P95={k0_stats['util_p95']:.3f} 丢包{k0_stats['drop_rate']*100:.1f}%")
+    # 1. refine k0（基于 k0=1 等效需求，返回绝对 k0）
+    # P3 commodity 含 P3 标定时的 k0（记录在 demand/meta.json），先除掉得 k0=1 等效，
+    # 避免 refine 时 k0 累加膨胀。不读 config.k0（可能已被上次 P4 回填）。
+    import json as _json
+    p3_meta = _json.load(open(paths["data_processed"] / "demand" / "meta.json"))
+    p3_k0 = float(p3_meta["k0"])
+    log.info(f"P3 commodity 含 k0={p3_k0:.4f}，除掉得 k0=1 等效用于 refine")
+    cb_base_unit = _scale_commodity(cb_base, 1.0 / p3_k0)
+    cb_burst_unit = _scale_commodity(cb_burst, 1.0 / p3_k0)
+    log.info("refine k0 (ECMP, 目标 P95≈0.45, 基于 k0=1 等效需求)...")
+    new_k0, k0_stats = refine_k0(cb_base_unit, el, ed, de, times, cfg, target_p95=0.45, sample_slots=1000)
+    log.info(f"refine: 新k0={new_k0:.4f} P95={k0_stats['util_p95']:.3f} 丢包{k0_stats['drop_rate']*100:.1f}%")
 
-    cb_base = _scale_commodity(cb_base, factor)
-    cb_burst = _scale_commodity(cb_burst, factor)
+    cb_base = _scale_commodity(cb_base_unit, new_k0)
+    cb_burst = _scale_commodity(cb_burst_unit, new_k0)
 
     rng_fail = np.random.RandomState(next(make_seed_stream(cfg.seed.data, "failure")))
     failed_compound = inject_failures(el, cfg, rng_fail, "compound")

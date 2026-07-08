@@ -51,7 +51,7 @@ constellation:
 demand:
   diurnal_amplitude_a: 0.4    # 0.3–0.5（4.1.4）
   burst_multiplier: 4.0       # 4.5.1
-  k0: 4.061199751939864      # P4 ECMP refine 回填（P95≈0.45，中负载）
+  k0: 4.0614166259765625      # P4 ECMP refine 回填（P95≈0.45，中负载）
   # 混合 OD 模型三股比例（P3 决策，π_rand+π_grav+π_hot=1）
   od_mix:
     random: 0.4
