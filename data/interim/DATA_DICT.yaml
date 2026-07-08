@@ -77,3 +77,124 @@ demand:
   - demand/interventions.json
   - demand/hotspot_pairs.json
   note_k0: P3 最短路代理标定 P95≈0.8；中位低反映热点集中，P4 ECMP/MAPPO refine
+simulation:
+  k0_refined: 4.061199751939864
+  k0_refine_stats:
+    factor: 2.9964141845703125
+    target_p95: 0.45
+    util_median: 4.88607185633141e-06
+    util_p95: 0.45000823028843573
+    util_max: 1.0
+    drop_rate: 0.12170033226147173
+    n_sample_slots: 1000
+    note: ECMP 真实路由 refine；中位低因 66 星稀疏流量，改用 P95 口径（8.2 局限性）
+  n_failed_edges_compound: 11
+  policies:
+  - dijkstra
+  - ecmp
+  - queue_aware
+  scenarios:
+  - baseline
+  - burst
+  - compound
+  runs:
+    dijkstra_baseline:
+      util_median: 1.8207662493265065e-06
+      util_p95: 0.3727080213789389
+      util_max: 1.0
+      drop_rate: 0.12553406296905043
+      e2e_mean_ms: 0.0
+      n_slots: 56966
+      n_shards: 114
+      tot_offered: 171436058730.22842
+      tot_carried: 149914993738.41846
+      tot_drop: 21521064991.80632
+    dijkstra_burst:
+      util_median: 1.8391581440812981e-06
+      util_p95: 0.3773764143850694
+      util_max: 1.0
+      drop_rate: 0.13785220130553458
+      e2e_mean_ms: 0.0
+      n_slots: 56966
+      n_shards: 114
+      tot_offered: 175664317002.56876
+      tot_carried: 151448604212.92587
+      tot_drop: 24215712789.63735
+    dijkstra_compound:
+      util_median: 1.4192249108196431e-06
+      util_p95: 0.3977081283943639
+      util_max: 1.0
+      drop_rate: 0.1489622358793879
+      e2e_mean_ms: 0.0
+      n_slots: 56966
+      n_shards: 114
+      tot_offered: 173529692620.54205
+      tot_carried: 147680321616.3429
+      tot_drop: 25849371004.21886
+    ecmp_baseline:
+      util_median: 4.1166025992476575e-06
+      util_p95: 0.3793991117156592
+      util_max: 1.0
+      drop_rate: 0.10774396153054717
+      e2e_mean_ms: 0.0
+      n_slots: 56966
+      n_shards: 114
+      tot_offered: 171436058730.20776
+      tot_carried: 152964858613.44687
+      tot_drop: 18471200116.77613
+    ecmp_burst:
+      util_median: 4.169000138263025e-06
+      util_p95: 0.38484944352323874
+      util_max: 1.0
+      drop_rate: 0.12008376074355112
+      e2e_mean_ms: 0.0
+      n_slots: 56966
+      n_shards: 114
+      tot_offered: 175664317002.5491
+      tot_carried: 154569885188.4496
+      tot_drop: 21094431814.113426
+    ecmp_compound:
+      util_median: 3.050376092089994e-06
+      util_p95: 0.40282819250702157
+      util_max: 1.0
+      drop_rate: 0.13566946192001653
+      e2e_mean_ms: 0.0
+      n_slots: 56966
+      n_shards: 114
+      tot_offered: 173529692620.5652
+      tot_carried: 149987012595.58582
+      tot_drop: 23542680024.977943
+    queue_aware_baseline:
+      util_median: 4.1459018833213174e-06
+      util_p95: 0.37976542273729025
+      util_max: 1.0
+      drop_rate: 0.10815508177599076
+      e2e_mean_ms: 0.0
+      n_slots: 56966
+      n_shards: 114
+      tot_offered: 171436058730.21698
+      tot_carried: 152894377778.90536
+      tot_drop: 18541680951.32017
+    queue_aware_burst:
+      util_median: 4.198476017087704e-06
+      util_p95: 0.3850477882662599
+      util_max: 1.0
+      drop_rate: 0.1205033963880817
+      e2e_mean_ms: 0.0
+      n_slots: 56966
+      n_shards: 114
+      tot_offered: 175664317002.55402
+      tot_carried: 154496170179.56168
+      tot_drop: 21168146823.00041
+    queue_aware_compound:
+      util_median: 3.0537191614796888e-06
+      util_p95: 0.4031354634426996
+      util_max: 1.0
+      drop_rate: 0.13590722839335143
+      e2e_mean_ms: 0.0
+      n_slots: 56966
+      n_shards: 114
+      tot_offered: 173529692620.55325
+      tot_carried: 149945753052.53543
+      tot_drop: 23583939568.0096
+  note: 流式落盘，每500时隙一shard；keep_detail=False，明细表审计时单独抽样
