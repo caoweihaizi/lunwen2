@@ -98,13 +98,19 @@ class RouteEnv:
         return preds
 
     def get_valid_actions(self, i, d, hops):
-        """有效下一跳：邻居 + 势值下降 + 可用。hops 是 2D (n,n)。"""
+        """有效下一跳：邻居 + 势值严格下降 + 可用（§6.3 无环保证）。
+
+        66 星稀疏拓扑下下降邻居常唯一，导致部分 (i,d) 无选择空间。
+        不放宽（放宽会导致环/绕路，reward 崩）。MUCAR 差异在 P12
+        压力场景（故障改变候选）体现。
+        """
         if self.net is None or i == d:
             return []
         cur = int(hops[i, d])
         valid = []
         for j in np.where(self.net.adj[i])[0]:
-            if int(hops[j, d]) < cur:
+            hj = int(hops[j, d])
+            if hj < cur and hj < 1e5:  # 严格下降
                 valid.append(int(j))
         return valid
 

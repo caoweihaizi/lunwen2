@@ -103,7 +103,8 @@ def compute_gae(rewards, values, dones, gamma=0.99, lam=0.95):
 
 
 def train_mappo(env, actor, critic, log, epochs=50, n_steps=200, lr=1e-3,
-                device="mps", clip=0.2, ent_coef=0.01):
+                device="mps", clip=0.2, ent_coef=0.01, inner_epochs=4):
+    """标准 PPO：收集 rollout 后多 inner epoch 更新，让 ratio≠1。"""
     opt_a = torch.optim.Adam(actor.parameters(), lr=lr)
     opt_c = torch.optim.Adam(critic.parameters(), lr=lr)
     for ep in range(epochs):
@@ -115,27 +116,29 @@ def train_mappo(env, actor, critic, log, epochs=50, n_steps=200, lr=1e-3,
         adv_t = (adv_t - adv_t.mean()) / (adv_t.std() + 1e-8)
         ret_t = torch.from_numpy(returns).float()
 
-        # 更新（每步一个 batch，简化）
+        # 多 inner epoch 更新同一 rollout（PPO 标准）
         total_a = 0.0; total_v = 0.0; n = 0
-        for t in range(len(traj["reward"])):
-            g = traj["global"][t].to(device); e = traj["edge"][t].to(device)
-            m = traj["mask"][t].to(device); a = traj["action"][t].to(device)
-            old_logp = traj["logp"][t].to(device)
-            logits = actor(g, e, m)
-            m_safe = m.clone(); m_safe[~m.any(dim=1)] = True
-            dist = torch.distributions.Categorical(logits=logits.masked_fill(~m_safe, float("-inf")))
-            logp = dist.log_prob(a)
-            ratio = torch.exp(logp - old_logp)
-            a_adv = adv_t[t].to(device)
-            a_loss = -(torch.min(ratio * a_adv, torch.clamp(ratio, 1 - clip, 1 + clip) * a_adv)).mean()
-            ent = dist.entropy().mean()
-            opt_a.zero_grad(); (a_loss - ent_coef * ent).backward(); opt_a.step()
+        for ie in range(inner_epochs):
+            for t in range(len(traj["reward"])):
+                g = traj["global"][t].to(device); e = traj["edge"][t].to(device)
+                m = traj["mask"][t].to(device); a = traj["action"][t].to(device)
+                old_logp = traj["logp"][t].to(device)
+                logits = actor(g, e, m)
+                m_safe = m.clone(); m_safe[~m.any(dim=1)] = True
+                dist = torch.distributions.Categorical(logits=logits.masked_fill(~m_safe, float("-inf")))
+                logp = dist.log_prob(a)
+                ratio = torch.exp(logp - old_logp)
+                a_adv = adv_t[t].to(device)
+                a_loss = -(torch.min(ratio * a_adv, torch.clamp(ratio, 1 - clip, 1 + clip) * a_adv)).mean()
+                ent = dist.entropy().mean()
+                opt_a.zero_grad(); (a_loss - ent_coef * ent).backward(); opt_a.step()
 
-            gstate = torch.from_numpy(traj["gstate"][t]).unsqueeze(0).to(device)
-            v = critic(gstate).squeeze()
-            v_loss = F.mse_loss(v, ret_t[t].to(device).unsqueeze(0).expand_as(v) if v.dim() > 0 else ret_t[t].to(device))
-            opt_c.zero_grad(); v_loss.backward(); opt_c.step()
-            total_a += a_loss.item(); total_v += v_loss.item(); n += 1
+                gstate = torch.from_numpy(traj["gstate"][t]).unsqueeze(0).to(device)
+                v = critic(gstate).squeeze()
+                v_target = ret_t[t].to(device)
+                v_loss = F.mse_loss(v, v_target.expand_as(v) if v.dim() > 0 else v_target)
+                opt_c.zero_grad(); v_loss.backward(); opt_c.step()
+                total_a += a_loss.item(); total_v += v_loss.item(); n += 1
 
         if (ep + 1) % 5 == 0:
             mean_r = np.mean(traj["reward"])
