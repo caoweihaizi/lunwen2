@@ -107,7 +107,7 @@ def main() -> int:
     cb_base_unit = _scale_commodity(cb_base, 1.0 / p3_k0)
     cb_burst_unit = _scale_commodity(cb_burst, 1.0 / p3_k0)
     log.info("refine k0 (ECMP, 目标 P95≈0.45, 基于 k0=1 等效需求)...")
-    new_k0, k0_stats = refine_k0(cb_base_unit, el, ed, de, times, cfg, target_p95=0.45, sample_slots=1000)
+    new_k0, k0_stats = refine_k0(cb_base_unit, el, ed, de, times, cfg, target_drop=0.08, sample_slots=1000)
     log.info(f"refine: 新k0={new_k0:.4f} P95={k0_stats['util_p95']:.3f} 丢包{k0_stats['drop_rate']*100:.1f}%")
 
     cb_base = _scale_commodity(cb_base_unit, new_k0)

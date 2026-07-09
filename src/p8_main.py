@@ -75,9 +75,9 @@ def main() -> int:
     normalize = ck["normalize"]
     mean_c, std_c = float(normalize["mean"][0]), float(normalize["std"][0])
 
-    runs_all = [(f"{pol}_{scn}", "mcar20")
-                for pol in ["dijkstra", "ecmp", "queue_aware"]
-                for scn in ["baseline", "burst", "compound"]]
+    # 264星边多，减少 run 数避免内存爆（只用3策略 baseline）
+    runs_all = [(f"{pol}_baseline", "mcar20")
+                for pol in ["dijkstra", "ecmp", "queue_aware"]]
 
     # === 1. 三基线 test 对比 ===
     log.info("1. 三基线 test 对比...")

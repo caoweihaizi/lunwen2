@@ -1,8 +1,8 @@
 constellation:
-  n_sat: 66
+  n_sat: 264
   walker:
-    planes: 6
-    sats_per_plane: 11
+    planes: 12
+    sats_per_plane: 22
     f: 2
     inclination_deg: 53.0
     altitude_km: 550.0
@@ -13,18 +13,18 @@ constellation:
   n_timeslots: 56966
   time_start: '2005-05-04T15:30:00'
   time_end: '2005-08-31T07:45:00'
-  edges_mean: 104.0054242881719
-  edges_min: 103
-  edges_max: 108
+  edges_mean: 528.0
+  edges_min: 528
+  edges_max: 528
   coverage_rate_samples:
-  - 0.96405
-  - 0.97725
-  - 0.9659
-  - 0.9767
+  - 0.99995
+  - 0.9999
+  - 1.0
+  - 1.0
   coverage_half_angle_deg: 18.504491365855035
-  potential_max_hops: 9
-  prop_delay_ms_min: 6.0377326011657715
-  prop_delay_ms_max: 16.657695770263672
+  potential_max_hops: 12
+  prop_delay_ms_min: 1.8601387739181519
+  prop_delay_ms_max: 9.718114852905273
   interim_files:
   - topo/positions.npz
   - topo/times.pkl
@@ -41,16 +41,16 @@ demand:
     hotspot: 0.2
   flow_type_counts:
   - 951915225.0903561
-  - 951915225.090356
+  - 951915225.0903562
   - 475957612.545178
-  k0: 1.3553532661981584
+  k0: 3.1466777025442125
   util_stats:
-    k0: 1.3553532661981584
-    util_median: 0.03994267831827109
-    util_p95: 0.7999986766951904
-    util_mean: 0.17493479205027196
-    util_max: 3.2805969672352346
-    n_samples: 20104
+    k0: 3.1466777025442125
+    util_median: 0.013626548905128197
+    util_p95: 0.7999998815353316
+    util_mean: 0.1508451977013609
+    util_max: 6.554447974941596
+    n_samples: 100593
     note: P3 最短路代理标定，P4 完整仿真后可 refine
   split:
     train:
@@ -78,17 +78,17 @@ demand:
   - demand/hotspot_pairs.json
   note_k0: P3 最短路代理标定 P95≈0.8；中位低反映热点集中，P4 ECMP/MAPPO refine
 simulation:
-  k0_refined: 4.0614166259765625
+  k0_refined: 5.949909496307372
   k0_refine_stats:
-    k0: 4.0614166259765625
-    target_p95: 0.45
-    util_median: 4.88633277975104e-06
-    util_p95: 0.45003226138944313
+    k0: 5.949909496307372
+    target_drop: 0.08
+    util_median: 0.0
+    util_p95: 0.10262480798698093
     util_max: 1.0
-    drop_rate: 0.1217127009268793
+    drop_rate: 0.08000019692909716
     n_sample_slots: 1000
-    note: ECMP 真实路由 refine（基于 k0=1 等效需求）；中位低因 66 星稀疏流量，改用 P95 口径（8.2 局限性）
-  n_failed_edges_compound: 11
+    note: ECMP refine，drop_rate 口径（util max 被 cap 无意义）
+  n_failed_edges_compound: 53
   policies:
   - dijkstra
   - ecmp
@@ -99,104 +99,104 @@ simulation:
   - compound
   runs:
     dijkstra_baseline:
-      util_median: 1.8208634809207382e-06
-      util_p95: 0.37272792453515957
+      util_median: 0.0
+      util_p95: 0.05667962912636542
       util_max: 1.0
-      drop_rate: 0.12554582785401389
+      drop_rate: 0.14771889450685227
       e2e_mean_ms: 0.0
       n_slots: 56966
       n_shards: 114
-      tot_offered: 171445213667.778
-      tot_carried: 149920982386.25034
-      tot_drop: 21524231281.529488
+      tot_offered: 273468458778.4623
+      tot_carried: 233072000365.22324
+      tot_drop: 40396458413.247154
     dijkstra_burst:
-      util_median: 1.8392563578297462e-06
-      util_p95: 0.3773965668403392
+      util_median: 0.0
+      util_p95: 0.0568733175342664
       util_max: 1.0
-      drop_rate: 0.1378640355200854
+      drop_rate: 0.15069196680858993
       e2e_mean_ms: 0.0
       n_slots: 56966
       n_shards: 114
-      tot_offered: 175673697735.33334
-      tot_carried: 151454612830.79895
-      tot_drop: 24219084904.52874
+      tot_offered: 275200059946.57886
+      tot_carried: 233729621647.38632
+      tot_drop: 41470438299.19182
     dijkstra_compound:
-      util_median: 1.419300699516135e-06
-      util_p95: 0.39772936659304925
+      util_median: 0.0
+      util_p95: 0.06930616830069758
       util_max: 1.0
-      drop_rate: 0.148974393067481
+      drop_rate: 0.15733877571175067
       e2e_mean_ms: 0.0
       n_slots: 56966
       n_shards: 114
-      tot_offered: 173538959361.224
-      tot_carried: 147686098216.82495
-      tot_drop: 25852861144.400597
+      tot_offered: 275200059946.58124
+      tot_carried: 231900419438.78702
+      tot_drop: 43299640507.79549
     ecmp_baseline:
-      util_median: 4.116822431877844e-06
-      util_p95: 0.3794193721859396
+      util_median: 0.0
+      util_p95: 0.0860729826856538
       util_max: 1.0
-      drop_rate: 0.10775509647185803
+      drop_rate: 0.06992014104765831
       e2e_mean_ms: 0.0
       n_slots: 56966
       n_shards: 114
-      tot_offered: 171445213667.77585
-      tot_carried: 152971118129.3763
-      tot_drop: 18474095538.4095
+      tot_offered: 273468458778.47223
+      tot_carried: 254347505568.6158
+      tot_drop: 19120953209.87651
     ecmp_burst:
-      util_median: 4.169222768998818e-06
-      util_p95: 0.3848699950492497
+      util_median: 0.0
+      util_p95: 0.08635403621086499
       util_max: 1.0
-      drop_rate: 0.12009498209235205
+      drop_rate: 0.07260778447340858
       e2e_mean_ms: 0.0
       n_slots: 56966
       n_shards: 114
-      tot_offered: 175673697735.31406
-      tot_carried: 154576168151.71005
-      tot_drop: 21097529583.61981
+      tot_offered: 275200059946.5842
+      tot_carried: 255218393306.92615
+      tot_drop: 19981666639.67071
     ecmp_compound:
-      util_median: 3.0505389866573505e-06
-      util_p95: 0.4028497041246569
+      util_median: 0.0
+      util_p95: 0.09433596957401694
       util_max: 1.0
-      drop_rate: 0.13568118473739385
+      drop_rate: 0.09815502458365068
       e2e_mean_ms: 0.0
       n_slots: 56966
       n_shards: 114
-      tot_offered: 173538959361.21964
-      tot_carried: 149992987757.00467
-      tot_drop: 23545971604.224728
+      tot_offered: 275200059946.601
+      tot_carried: 248187791297.1287
+      tot_drop: 27012268649.480762
     queue_aware_baseline:
-      util_median: 7.298416375980322e-06
-      util_p95: 0.38335797688288376
+      util_median: 0.0
+      util_p95: 0.08555272682233812
       util_max: 1.0
-      drop_rate: 0.09904064128656415
+      drop_rate: 0.0712102622914159
       e2e_mean_ms: 0.0
       n_slots: 56966
       n_shards: 114
-      tot_offered: 171445213667.76675
-      tot_carried: 154465169760.5951
-      tot_drop: 16980043907.167631
+      tot_offered: 273468458778.4823
+      tot_carried: 253994698100.4274
+      tot_drop: 19473760678.044983
     queue_aware_burst:
-      util_median: 7.3852809344225194e-06
-      util_p95: 0.3886761620960119
+      util_median: 0.0
+      util_p95: 0.08583236887322515
       util_max: 1.0
-      drop_rate: 0.11141475048439829
+      drop_rate: 0.07390484929090103
       e2e_mean_ms: 0.0
       n_slots: 56966
       n_shards: 114
-      tot_offered: 175673697735.3108
-      tot_carried: 156101056535.46216
-      tot_drop: 19572641199.851257
+      tot_offered: 275200059946.5899
+      tot_carried: 254861440991.38065
+      tot_drop: 20338618955.199657
     queue_aware_compound:
-      util_median: 6.110298920550846e-06
-      util_p95: 0.40845480305409465
+      util_median: 0.0
+      util_p95: 0.09388282973927553
       util_max: 1.0
-      drop_rate: 0.12815587098032516
+      drop_rate: 0.09915863066129206
       e2e_mean_ms: 0.0
       n_slots: 56966
       n_shards: 114
-      tot_offered: 174418155174.70865
-      tot_carried: 152065444583.509
-      tot_drop: 22352710591.196293
+      tot_offered: 275200059946.61786
+      tot_carried: 247911598844.4194
+      tot_drop: 27288461102.212116
   note: 流式落盘，每500时隙一shard；keep_detail=False，明细表审计时单独抽样
 observed:
   mechanisms:
@@ -212,222 +212,222 @@ observed:
   runs:
     dijkstra_baseline:
       mcar20:
-        mean_actual_rate: 0.19986466065931702
+        mean_actual_rate: 0.19995783630674635
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mcar40:
-        mean_actual_rate: 0.3999940823384268
+        mean_actual_rate: 0.39998383026009665
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mar20:
-        mean_actual_rate: 0.20010612006368467
+        mean_actual_rate: 0.20003631388616988
         n_shards: 114
-        mar_high_load_miss: 0.5966206411770817
-        mar_low_load_miss: 0.18153270858404452
+        mar_high_load_miss: 0.6226173909071024
+        mar_low_load_miss: 0.1945256761416591
       block10:
-        mean_actual_rate: 0.1814405536034352
+        mean_actual_rate: 0.18124640841724224
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
     dijkstra_burst:
       mcar20:
-        mean_actual_rate: 0.20012546534369646
+        mean_actual_rate: 0.20004417832416477
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mcar40:
-        mean_actual_rate: 0.4000077895897901
+        mean_actual_rate: 0.4000505404403571
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mar20:
-        mean_actual_rate: 0.20005263165286738
+        mean_actual_rate: 0.199967703919703
         n_shards: 114
-        mar_high_load_miss: 0.5966206411770817
-        mar_low_load_miss: 0.18153270858404452
+        mar_high_load_miss: 0.6226173909071024
+        mar_low_load_miss: 0.1945256761416591
       block10:
-        mean_actual_rate: 0.1813750599440018
+        mean_actual_rate: 0.18125618542837454
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
     dijkstra_compound:
       mcar20:
-        mean_actual_rate: 0.19994956370801986
+        mean_actual_rate: 0.20000522609135596
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mcar40:
-        mean_actual_rate: 0.4000918343603739
+        mean_actual_rate: 0.39998374464510045
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mar20:
-        mean_actual_rate: 0.20004793278893268
+        mean_actual_rate: 0.19998929453367628
         n_shards: 114
-        mar_high_load_miss: 0.5957447773612243
-        mar_low_load_miss: 0.1806551177367731
+        mar_high_load_miss: 0.622137176304076
+        mar_low_load_miss: 0.1939318448913059
       block10:
-        mean_actual_rate: 0.18135120191543952
+        mean_actual_rate: 0.18127235298546798
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       compound_mar:
-        mean_actual_rate: 0.1999312015047868
+        mean_actual_rate: 0.20001940133444823
         n_shards: 114
-        mar_high_load_miss: 0.5957447773612243
-        mar_low_load_miss: 0.1806551177367731
+        mar_high_load_miss: 0.622137176304076
+        mar_low_load_miss: 0.1939318448913059
     ecmp_baseline:
       mcar20:
-        mean_actual_rate: 0.1999954781137226
+        mean_actual_rate: 0.1999908332439674
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mcar40:
-        mean_actual_rate: 0.39994322115048725
+        mean_actual_rate: 0.3999768379716143
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mar20:
-        mean_actual_rate: 0.20000650605497372
+        mean_actual_rate: 0.200004504659957
         n_shards: 114
-        mar_high_load_miss: 0.5955206717627336
-        mar_low_load_miss: 0.1815030237969825
+        mar_high_load_miss: 0.6207160335202675
+        mar_low_load_miss: 0.19481874888266693
       block10:
-        mean_actual_rate: 0.18134109120117617
+        mean_actual_rate: 0.1812289277316878
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
     ecmp_burst:
       mcar20:
-        mean_actual_rate: 0.19997409606431424
+        mean_actual_rate: 0.19994847460943294
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mcar40:
-        mean_actual_rate: 0.4000744518014846
+        mean_actual_rate: 0.40002791981253694
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mar20:
-        mean_actual_rate: 0.19999383422852357
+        mean_actual_rate: 0.19996855192140517
         n_shards: 114
-        mar_high_load_miss: 0.5955206717627336
-        mar_low_load_miss: 0.1815030237969825
+        mar_high_load_miss: 0.6207160335202675
+        mar_low_load_miss: 0.19481874888266693
       block10:
-        mean_actual_rate: 0.1810016833335514
+        mean_actual_rate: 0.18135795019599654
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
     ecmp_compound:
       mcar20:
-        mean_actual_rate: 0.20014048825602473
+        mean_actual_rate: 0.20001703634132392
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mcar40:
-        mean_actual_rate: 0.3999219523558247
+        mean_actual_rate: 0.4000231480666881
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mar20:
-        mean_actual_rate: 0.20004580744362827
+        mean_actual_rate: 0.2000270923638439
         n_shards: 114
-        mar_high_load_miss: 0.5953721749916907
-        mar_low_load_miss: 0.18067616256595895
+        mar_high_load_miss: 0.6199125221041746
+        mar_low_load_miss: 0.19419726252490518
       block10:
-        mean_actual_rate: 0.18154377981872627
+        mean_actual_rate: 0.18123797217235543
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       compound_mar:
-        mean_actual_rate: 0.20003620613222853
+        mean_actual_rate: 0.19999983646338196
         n_shards: 114
-        mar_high_load_miss: 0.5953721749916907
-        mar_low_load_miss: 0.18067616256595895
+        mar_high_load_miss: 0.6199125221041746
+        mar_low_load_miss: 0.19419726252490518
     queue_aware_baseline:
       mcar20:
-        mean_actual_rate: 0.20002656556330037
+        mean_actual_rate: 0.19999434689299445
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mcar40:
-        mean_actual_rate: 0.4000628981609681
+        mean_actual_rate: 0.40001150322306717
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mar20:
-        mean_actual_rate: 0.20003088429222574
+        mean_actual_rate: 0.1999917152807725
         n_shards: 114
-        mar_high_load_miss: 0.5945182031550573
-        mar_low_load_miss: 0.18148994549407652
+        mar_high_load_miss: 0.619172694596347
+        mar_low_load_miss: 0.19479843876568065
       block10:
-        mean_actual_rate: 0.18116311829346346
+        mean_actual_rate: 0.18133330338624554
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
     queue_aware_burst:
       mcar20:
-        mean_actual_rate: 0.1999359698664781
+        mean_actual_rate: 0.2000099346849262
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mcar40:
-        mean_actual_rate: 0.40014931716189656
+        mean_actual_rate: 0.4000299441881355
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mar20:
-        mean_actual_rate: 0.20003459633666099
+        mean_actual_rate: 0.20000461639111544
         n_shards: 114
-        mar_high_load_miss: 0.5945182031550573
-        mar_low_load_miss: 0.18148994549407652
+        mar_high_load_miss: 0.619172694596347
+        mar_low_load_miss: 0.19479843876568065
       block10:
-        mean_actual_rate: 0.18118933487172728
+        mean_actual_rate: 0.18127550322515876
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
     queue_aware_compound:
       mcar20:
-        mean_actual_rate: 0.2000465703116046
+        mean_actual_rate: 0.20005664829191416
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mcar40:
-        mean_actual_rate: 0.40000969489819066
+        mean_actual_rate: 0.40002932515386047
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       mar20:
-        mean_actual_rate: 0.19987759684133505
+        mean_actual_rate: 0.20000556980886822
         n_shards: 114
-        mar_high_load_miss: 0.5950211957279434
-        mar_low_load_miss: 0.18058764128523108
+        mar_high_load_miss: 0.6196698807057961
+        mar_low_load_miss: 0.19418244858785821
       block10:
-        mean_actual_rate: 0.18148238905749556
+        mean_actual_rate: 0.18130423652309
         n_shards: 114
         mar_high_load_miss: null
         mar_low_load_miss: null
       compound_mar:
-        mean_actual_rate: 0.19991867544636416
+        mean_actual_rate: 0.20000726805342547
         n_shards: 114
-        mar_high_load_miss: 0.5950211957279434
-        mar_low_load_miss: 0.18058764128523108
+        mar_high_load_miss: 0.6196698807057961
+        mar_low_load_miss: 0.19418244858785821
   note: 流式逐 shard 注入；block 跨 shard 用全局事件列表；真值与观测并存
 predict_model:
   checkpoint: models/predict/predict_v1.pt
   n_params: 204306
-  infer_ms: 6.489248275756836
-  best_val_loss: 0.14726507918039958
+  infer_ms: 3.2413172721862793
+  best_val_loss: 0.11615371867020925
   crossing_rate: 0.0
   normalize_mean:
-  - 7871.2490234375
-  - 0.034721489995718
+  - 3230.548583984375
+  - 0.014551911503076553
   - 0.0
   normalize_std:
-  - 30862.224609375
-  - 0.13664624094963074
+  - 19755.2734375
+  - 0.08830990642309189
   - 1.0
   architecture: GRU-D + GRU(hidden=128,2层) + 单调分位数头 + LR调度 + 梯度裁剪
   note: 轻量版；GAT 简化为边级 MLP（单边样本无图结构），完整 GAT 在 P10

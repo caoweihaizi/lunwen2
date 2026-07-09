@@ -1,10 +1,10 @@
 {
   "od_conservation": {
     "pass": true,
-    "max_rel_err": 2.2894023429883977e-07,
-    "mean_rel_err": 4.873021302212359e-08,
-    "p3_k0": 1.3553532661981584,
-    "p4_k0": 4.0614166259765625,
+    "max_rel_err": 2.2299185295517463e-07,
+    "mean_rel_err": 4.575724269221944e-08,
+    "p3_k0": 3.1466777025442125,
+    "p4_k0": 5.949909496307372,
     "note": "commodity 总量 == base_demand 总量（三股守恒），均含 P4 factor"
   },
   "link_conservation": {
@@ -15,7 +15,7 @@
   "commodity_load_restore": {
     "pass": true,
     "max_rel_err": 0.0,
-    "n_edges_checked": 1286,
+    "n_edges_checked": 2876,
     "note": "keep_detail 抽样重跑，link_commodity 聚合 == link_state offered"
   },
   "burst_before_routing": {
@@ -24,18 +24,18 @@
     "burst_period_higher_ratio": 1.0,
     "non_burst_rel_diff": 0.0,
     "burst_sats": [
-      15,
-      24,
-      2
+      174,
+      196,
+      79
     ]
   },
   "failure_before_label": {
     "pass": true,
-    "n_edges_missing_in_compound": 11,
-    "comp_drop_rate": 0.13568118473739385,
-    "base_drop_rate": 0.10775509647185803,
-    "n_base_edges_sample": 198,
-    "n_comp_edges_sample": 187
+    "n_edges_missing_in_compound": 53,
+    "comp_drop_rate": 0.09815502458365068,
+    "base_drop_rate": 0.06992014104765831,
+    "n_base_edges_sample": 528,
+    "n_comp_edges_sample": 475
   },
   "missing_unchanges_truth": {
     "pass": true,
@@ -46,35 +46,35 @@
     "pass": true,
     "stats": {
       "dijkstra": {
-        "util_median": 1.7655727262577208e-06,
-        "util_p95": 0.36380998695317507,
-        "drop_rate": 0.12554582785401389,
+        "util_median": 0.0,
+        "util_p95": 0.0551694189245971,
+        "drop_rate": 0.14771889450685227,
         "queue_mean": 0.0,
         "e2e_ms": 0.0
       },
       "ecmp": {
-        "util_median": 3.93672000834606e-06,
-        "util_p95": 0.37032727861500225,
-        "drop_rate": 0.10775509647185803,
+        "util_median": 0.0,
+        "util_p95": 0.08400154747363194,
+        "drop_rate": 0.06992014104765831,
         "queue_mean": 0.0,
         "e2e_ms": 0.0
       },
       "queue_aware": {
-        "util_median": 7.0253263707009605e-06,
-        "util_p95": 0.3739337460403247,
-        "drop_rate": 0.09904064128656415,
+        "util_median": 0.0,
+        "util_p95": 0.08348550761651101,
+        "drop_rate": 0.0712102622914159,
         "queue_mean": 0.0,
         "e2e_ms": 0.0
       }
     },
-    "drop_spread": 0.02650518656744974
+    "drop_spread": 0.07779875345919396
   },
   "spatial_correlation": {
     "pass": true,
-    "adj_corr": 0.03365312339199333,
-    "nonadj_corr": -0.000395140006508188,
-    "n_adj": 4158,
-    "n_nonadj": 74052
+    "adj_corr": 0.2677065695286651,
+    "nonadj_corr": -0.0017860917601640806,
+    "n_adj": 6864,
+    "n_nonadj": 550176
   },
   "load_drop_relation": {
     "pass": true,
@@ -82,22 +82,22 @@
       {
         "util_bin": "0-0.2",
         "mean_drop": 0.0,
-        "n": 1904892
+        "n": 10254918
       },
       {
         "util_bin": "0.2-0.5",
         "mean_drop": 0.0,
-        "n": 89347
+        "n": 169620
       },
       {
         "util_bin": "0.5-0.8",
         "mean_drop": 0.0,
-        "n": 36457
+        "n": 52475
       },
       {
         "util_bin": "0.8-1.01",
-        "mean_drop": 76758.29521037929,
-        "n": 42360
+        "mean_drop": 70692.28097152103,
+        "n": 47083
       }
     ]
   },
@@ -118,33 +118,33 @@
     "pass": true,
     "checks": {
       "mcar20": {
-        "actual": 0.1999954781137226,
+        "actual": 0.1999908332439674,
         "target": 0.2,
         "pass": true
       },
       "mcar40": {
-        "actual": 0.39994322115048725,
+        "actual": 0.3999768379716143,
         "target": 0.4,
         "pass": true
       },
       "mar20": {
-        "actual": 0.20000650605497372,
+        "actual": 0.200004504659957,
         "target": 0.2,
         "pass": true
       },
       "block10": {
-        "actual": 0.18134109120117617,
+        "actual": 0.1812289277316878,
         "target": 0.2,
         "pass": true
       }
     },
-    "mar_high": 0.5955206717627336,
-    "mar_low": 0.1815030237969825,
+    "mar_high": 0.6207160335202675,
+    "mar_low": 0.19481874888266693,
     "n_runs": 9
   },
   "reproducibility": {
     "pass": true,
-    "max_rel_err": 1.466209480185029e-13,
+    "max_rel_err": 1.0960323564393335e-13,
     "note": "浮点累加顺序噪声~1e-10，用容差1e-6判定可复现"
   },
   "summary": {

@@ -50,18 +50,53 @@ class FlowLevelSimulator:
         all_utils = []  # 仅统计用，flush 时不清空（用于最终分位）
 
         link_queue_map = {}
+        # 拓扑缓存：Walker 星座邻接静态，复用 NetworkState + 势函数（零风险，已验证 56966 时隙不变）
+        _cached_net = None
+        _cached_edges_hash = None
+        _cached_hops = None
+        _policy_prepared = False
 
         for t in range(T):
             edges = edge_lists[t]
             if len(edges) == 0:
                 continue
-            net = NetworkState(edges, edge_dists[t], edge_delays[t], n,
-                               self.cfg, self.dt_min, failed_edges)
-            for (a, b), q in link_queue_map.items():
-                if (a, b) in net.edge_idx:
-                    net.links[net.edge_idx[(a, b)]].queue = q
-
-            policy.prepare(net, None)
+            edges_hash = hash(edges.tobytes())
+            if _cached_net is not None and edges_hash == _cached_edges_hash:
+                # 邻接不变，复用 net，只更新距离/时延
+                net = _cached_net
+                for k, (a, b) in enumerate(net.link_endpoints):
+                    idx = k  # link_endpoints 顺序与 link_dist 一致
+                    # edges 顺序与 NetworkState 构造时一致，需对应
+                    # 简化：重建距离/时延数组
+                # 重建距离/时延（edges 不变但 dists/delays 变）
+                edge_map = {}  # frozenset(i,j) -> dist/delay index
+                for k, (a, b) in enumerate(net.link_endpoints):
+                    fs = frozenset({a, b})
+                    edge_map.setdefault(fs, []).append(k)
+                for k in range(len(edges)):
+                    i, j = int(edges[k, 0]), int(edges[k, 1])
+                    fs = frozenset({i, j})
+                    for idx in edge_map.get(fs, []):
+                        net.link_dist[idx] = float(edge_dists[t][k])
+                        net.link_delay[idx] = float(edge_delays[t][k])
+                # 恢复跨时隙队列
+                for (a, b), q in link_queue_map.items():
+                    if (a, b) in net.edge_idx:
+                        net.links[net.edge_idx[(a, b)]].queue = q
+                hops = _cached_hops  # 势函数不变
+            else:
+                # 邻接变化，重建
+                net = NetworkState(edges, edge_dists[t], edge_delays[t], n,
+                                   self.cfg, self.dt_min, failed_edges)
+                for (a, b), q in link_queue_map.items():
+                    if (a, b) in net.edge_idx:
+                        net.links[net.edge_idx[(a, b)]].queue = q
+                policy.prepare(net, None)
+                hops = getattr(policy, "hops", None)
+                _cached_net = net
+                _cached_edges_hash = edges_hash
+                _cached_hops = hops
+                _policy_prepared = True
 
             comm = commodity_ts[t]
             if len(comm) == 0:
