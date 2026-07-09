@@ -15,7 +15,8 @@ N_MAX_NEIGHBORS = 4
 class Actor(nn.Module):
     def __init__(self, n_global=3, n_edge_feat=N_EDGE_FEAT, hidden=64):
         super().__init__()
-        # 边特征编码
+        # 边特征编码（输入归一化：对每维特征做 LayerNorm 稳定量级）
+        self.edge_norm = nn.LayerNorm(n_edge_feat)
         self.edge_mlp = nn.Sequential(
             nn.Linear(n_edge_feat, hidden), nn.ReLU(),
             nn.Linear(hidden, hidden), nn.ReLU(),
@@ -25,6 +26,7 @@ class Actor(nn.Module):
             nn.Linear(hidden + n_global, hidden), nn.ReLU(),
             nn.Linear(hidden, N_MAX_NEIGHBORS),
         )
+        self.logit_scale = 1.0  # 限制 logit 量级，避免 softmax 退化
 
     def forward(self, global_feat, edge_feat, mask):
         """
@@ -33,12 +35,13 @@ class Actor(nn.Module):
         mask: (B, 4) bool
         返回 logits (B, 4)，已 mask。
         """
-        # 边特征编码后取 mean 聚合
-        B = edge_feat.shape[0]
+        # 输入归一化
+        edge_feat = self.edge_norm(edge_feat)
         e = self.edge_mlp(edge_feat)  # (B, 4, hidden)
         e_agg = e.mean(dim=1)  # (B, hidden)
         combined = torch.cat([e_agg, global_feat], dim=-1)  # (B, hidden+n_global)
         logits = self.head(combined)  # (B, 4)
+        logits = torch.tanh(logits) * self.logit_scale  # 限制量级，避免 softmax 退化
         # mask：无效位置 -inf
         logits = logits.masked_fill(~mask, float("-inf"))
         return logits

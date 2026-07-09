@@ -49,6 +49,15 @@ def main() -> int:
 
     log.info(f"=== P10 路由环境与 MAPPO (device={device}) ===")
 
+    # 加载 P7 冻结预测器
+    from src.predict.model import PredictModel
+    ck = torch.load(paths["models"] / "predict" / "predict_v1.pt", weights_only=False)
+    predict_model = PredictModel(n_feat=12, hidden=128, n_h=2, h_max=3, n_gru_layers=2).to(device)
+    predict_model.load_state_dict(ck["state_dict"])
+    predict_model.eval()
+    normalize = ck["normalize"]
+    log.info("加载 P7 预测器用于不确定性特征")
+
     cb, el, ed, de, times = _load_data(cfg, paths)
     # 用 train 段前 5000 时隙
     split = pickle.load(open(paths["data_processed"] / "demand" / "split.pkl", "rb"))["split"]
@@ -60,7 +69,7 @@ def main() -> int:
     for tag, use_uncertainty in [("mucar", True), ("point_mappo", False)]:
         log.info(f"\n--- 训练 {tag} (use_uncertainty={use_uncertainty}) ---")
         seed_everything(cfg.seed.data)
-        env = RouteEnv(cfg, cb, el, ed, de, times, device=device, max_slots=train_end)
+        env = RouteEnv(cfg, cb, el, ed, de, times, predict_model=predict_model, normalize=normalize, device=device, max_slots=train_end)
         env.use_uncertainty = use_uncertainty
         env.reset()
         actor = Actor(n_global=3, hidden=64).to(device)
@@ -71,18 +80,40 @@ def main() -> int:
         dt = time.time() - t0
         log.info(f"{tag} 训练完成 {dt:.0f}s")
 
-        # 评价（test 段前 1000 时隙，greedy 动作）
+        # 评价（test 段，greedy 动作）
+        # 从 test_s - W 开始，前 W 步积累历史（预测器需历史窗口），不记录 reward
         test_s = split["test"][0]
-        eval_env = RouteEnv(cfg, cb, el, ed, de, times, device=device,
+        W = int(cfg.data.history_window_W)
+        eval_start = max(0, test_s - W)
+        eval_env = RouteEnv(cfg, cb, el, ed, de, times, predict_model=predict_model,
+                            normalize=normalize, device=device,
                             max_slots=test_s + 1000)
         eval_env.use_uncertainty = use_uncertainty
-        eval_env.t = test_s
         eval_env.reset()
-        eval_env.t = test_s
-        # 跑 1000 时隙 greedy
-        rewards = []; drops = []
-        from src.sim.potential import all_pairs_hops
+        eval_env.t = eval_start
+        # 预热：跑 W 步积累历史，用简单 greedy（valid[0]）不调 actor
         from collections import defaultdict
+        from src.sim.potential import all_pairs_hops
+        for _ in range(W):
+            if eval_env.t >= test_s:
+                break
+            eval_env.net = eval_env._build_net(eval_env.t)
+            hops = all_pairs_hops(eval_env.net.adj)
+            comm = eval_env.commodity_ts[eval_env.t]
+            agg = defaultdict(float)
+            for row in comm:
+                s, d, v = int(row[0]), int(row[1]), float(row[2])
+                if s != d:
+                    agg[(s, d)] += v
+            warmup_actions = {}
+            for (i, d), vol in agg.items():
+                valid = eval_env.get_valid_actions(i, d, hops)
+                if valid:
+                    warmup_actions[(i, d)] = valid[0]
+            eval_env.step(warmup_actions)
+
+        # 正式评价 1000 时隙，用训练好的 actor greedy
+        rewards = []; drops = []
         for _ in range(1000):
             if eval_env.t >= eval_env.T:
                 break
@@ -95,7 +126,6 @@ def main() -> int:
                 if s != d:
                     agg[(s, d)] += v
             actions = {}
-            # 用 actor greedy 选动作
             globals_list = []; edges_list = []; masks_list = []; keys_list = []
             for (i, d), vol in agg.items():
                 g, e, m = eval_env.get_obs(i, d, vol, hops)

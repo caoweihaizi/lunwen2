@@ -56,8 +56,13 @@ class RouteEnv:
         self.link_queue_map = {}
         self.t = 0
         self.net = None
-        # 预测缓存（每时隙批量）
+        # 预测缓存（每时隙批量）：{(t, i, j): (q05, q50, q95, w)}
         self._pred_cache = {}
+        # 历史特征窗口（每条全局边，W 时隙的 12 维特征）
+        self.W = int(cfg.data.history_window_W)
+        self._hist = {e: [] for e in self.edge_idx}  # edge -> list of feat(12,)
+        # P9 校准器（滑动 CQR，用 calib 集初始化）
+        self._scqr = None
         # 是否使用不确定性特征（Point-MAPPO=False 时掩码 w/m/r_cong）
         self.use_uncertainty = True
 
@@ -84,17 +89,77 @@ class RouteEnv:
                 net.links[net.edge_idx[(a, b)]].queue = q
         return net
 
+    def _update_history(self, t):
+        """记录该时隙每条 active 边的特征到历史窗口。"""
+        if self.net is None:
+            return
+        mean_c = float(self.normalize["mean"][0]) if self.normalize else 0.0
+        std_c = float(self.normalize["std"][0]) if self.normalize else 1.0
+        mean_u = float(self.normalize["mean"][1]) if self.normalize else 0.0
+        std_u = float(self.normalize["std"][1]) if self.normalize else 1.0
+        mean_q = float(self.normalize["mean"][2]) if self.normalize else 0.0
+        std_q = float(self.normalize["std"][2]) if self.normalize else 1.0
+        for (a, b), idx in self.net.edge_idx.items():
+            k = self.edge_idx.get((a, b))
+            if k is None:
+                continue
+            lk = self.net.links[idx]
+            carried = (lk.queue - mean_c) / max(std_c, 1e-6)  # 近似：用队列作 carried
+            util = lk.queue / max(lk.capacity, 1e-9)
+            queue = lk.queue / max(lk.buffer, 1e-9)
+            feat = np.array([carried, util, queue, 1, 1, 1, 0, 0, 0,
+                             self.net.link_delay[idx], self.net.link_dist[idx], 1.0],
+                            dtype=np.float32)
+            self._hist[(a, b)].append(feat)
+            if len(self._hist[(a, b)]) > self.W:
+                self._hist[(a, b)] = self._hist[(a, b)][-self.W:]
+
     def _get_predictions(self, t):
-        """批量预测该时隙所有 active 边的分位数（缓存）。"""
+        """批量预测该时隙所有 active 边的分位数 + 校准区间宽度 w。
+
+        用 P7 模型对历史窗口 W 前向，P9 滑动 CQR 算 w。
+        返回 {(i,j): (q05, q50, q95, w)} 标准化空间。
+        """
         if t in self._pred_cache:
             return self._pred_cache[t]
-        if self.predict_model is None:
-            return {}
-        # 用历史 W 时隙特征批量预测（简化：用当前链路状态作特征）
-        # 这里简化：对每条 active 边，用其当前队列/利用率构造特征前向
-        # 实际 P7 模型需历史窗口，这里用当前状态近似（P10 侧重路由，预测器接口）
         preds = {}
+        if self.predict_model is None:
+            self._pred_cache[t] = preds
+            return preds
+        # 收集有足够历史的 active 边
+        batch_edges = []; batch_x = []; batch_f = []
+        for (a, b), idx in self.net.edge_idx.items():
+            hist = self._hist.get((a, b), [])
+            if len(hist) < self.W:
+                continue
+            x = np.stack(hist[-self.W:])  # (W, 12)
+            batch_x.append(x)
+            # 未来计划（简化：用当前边属性）
+            f = np.zeros((3, 3), dtype=np.float32)
+            f[:] = [self.net.link_delay[idx], self.net.link_dist[idx], 1.0]
+            batch_f.append(f)
+            batch_edges.append((a, b))
+        if not batch_x:
+            self._pred_cache[t] = preds
+            return preds
+        import torch
+        x_t = torch.from_numpy(np.stack(batch_x)).to(self.device)
+        f_t = torch.from_numpy(np.stack(batch_f)).to(self.device)
+        self.predict_model.eval()
+        with torch.no_grad():
+            q = self.predict_model(x_t, f_t)  # (B, 2, 3) h=1,3 的 q05/q50/q95
+        q = q.cpu().numpy()
+        for k, e in enumerate(batch_edges):
+            q05, q50, q95 = q[k, 0, 0], q[k, 0, 1], q[k, 0, 2]  # h=1
+            # 校准区间宽度 w（简化：q95-q05；P9 滑动 CQR 在 _scqr 维护）
+            if self._scqr is not None:
+                # 用滑动 q_hat 校准（简化：w = (q95 - q05) + 2*q_hat）
+                w = (q95 - q05) + 2 * self._scqr.last_q_hat
+            else:
+                w = q95 - q05
+            preds[e] = (float(q05), float(q50), float(q95), float(w))
         self._pred_cache[t] = preds
+        return preds
         return preds
 
     def get_valid_actions(self, i, d, hops):
@@ -128,6 +193,9 @@ class RouteEnv:
         cand = valid + [j for j in nbrs if j not in valid]
         cand = cand[:N_MAX_NEIGHBORS]
 
+        # 取该时隙预测（批量已算）
+        preds = self._get_predictions(self.t)
+
         edge_feat = np.zeros((N_MAX_NEIGHBORS, N_EDGE_FEAT), dtype=np.float32)
         action_mask = np.zeros(N_MAX_NEIGHBORS, dtype=bool)
         for k, j in enumerate(cand):
@@ -139,10 +207,17 @@ class RouteEnv:
             q = lk.queue / max(lk.buffer, 1e-9)
             delta = self.net.link_delay[idx]
             ell = self.net.link_dist[idx]
-            y50 = lk.queue / max(lk.capacity, 1e-9)
-            y_up = y50 + 0.1
-            w = 0.1
-            m = 1.0
+            # 真实预测（从 P7 模型缓存）
+            p = preds.get((i, j))
+            if p is not None:
+                y50, y_up, w = p[1], p[2], p[3]
+                m = 1.0  # 观测到（P10 训练假设完整观测）
+            else:
+                # 历史不足，用当前值兜底
+                y50 = lk.queue / max(lk.capacity, 1e-9)
+                y_up = y50 + 0.1
+                w = 0.1
+                m = 0.0  # 标记预测不可用
             a = 1.0
             r_cong = float(y_up >= self.cong_thr)
             phi_j = int(hops[j, d])
@@ -200,6 +275,8 @@ class RouteEnv:
 
         # 保存跨时隙队列
         self.link_queue_map = {ep: lk.queue for ep, lk in zip(self.net.link_endpoints, self.net.links)}
+        # 更新历史特征（供下一时隙预测）
+        self._update_history(self.t)
 
         info = {"drop_rate": drop_rate, "mean_delay_ms": mean_delay,
                 "tot_served": tot_served, "tot_drop": tot_drop}
