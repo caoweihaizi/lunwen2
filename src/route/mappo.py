@@ -131,13 +131,17 @@ def train_mappo(env, actor, critic, log, epochs=50, n_steps=200, lr=1e-3,
                 a_adv = adv_t[t].to(device)
                 a_loss = -(torch.min(ratio * a_adv, torch.clamp(ratio, 1 - clip, 1 + clip) * a_adv)).mean()
                 ent = dist.entropy().mean()
-                opt_a.zero_grad(); (a_loss - ent_coef * ent).backward(); opt_a.step()
+                opt_a.zero_grad(); (a_loss - ent_coef * ent).backward()
+                torch.nn.utils.clip_grad_norm_(actor.parameters(), 1.0)  # 防梯度爆炸/nan
+                opt_a.step()
 
                 gstate = torch.from_numpy(traj["gstate"][t]).unsqueeze(0).to(device)
                 v = critic(gstate).squeeze()
                 v_target = ret_t[t].to(device)
                 v_loss = F.mse_loss(v, v_target.expand_as(v) if v.dim() > 0 else v_target)
-                opt_c.zero_grad(); v_loss.backward(); opt_c.step()
+                opt_c.zero_grad(); v_loss.backward()
+                torch.nn.utils.clip_grad_norm_(critic.parameters(), 1.0)
+                opt_c.step()
                 total_a += a_loss.item(); total_v += v_loss.item(); n += 1
 
         if (ep + 1) % 5 == 0:

@@ -8,7 +8,7 @@
     "p95_delay": 12.023526339261036,
     "p99_delay": 12.046415627709141,
     "n_steps": 500,
-    "eval_time_s": 79.6
+    "eval_time_s": 78.9
   },
   "S1_point_mappo": {
     "mean_reward": -0.6224178699415117,
@@ -19,7 +19,7 @@
     "p95_delay": 12.023526339261036,
     "p99_delay": 12.046415627709141,
     "n_steps": 500,
-    "eval_time_s": 77.4
+    "eval_time_s": 78.7
   },
   "S5_mucar": {
     "mean_reward": -0.6308901414721242,
@@ -30,7 +30,7 @@
     "p95_delay": 12.130697937908792,
     "p99_delay": 12.165891259896128,
     "n_steps": 500,
-    "eval_time_s": 76.1
+    "eval_time_s": 78.2
   },
   "S5_point_mappo": {
     "mean_reward": -0.6308901414721242,
@@ -41,6 +41,6 @@
     "p95_delay": 12.130697937908792,
     "p99_delay": 12.165891259896128,
     "n_steps": 500,
-    "eval_time_s": 79.2
+    "eval_time_s": 78.6
   }
 }

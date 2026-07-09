@@ -42,6 +42,8 @@ class Actor(nn.Module):
         combined = torch.cat([e_agg, global_feat], dim=-1)  # (B, hidden+n_global)
         logits = self.head(combined)  # (B, 4)
         logits = torch.tanh(logits) * self.logit_scale  # 限制量级，避免 softmax 退化
+        # 防 nan（LayerNorm 在退化 batch 下可能产生 nan）
+        logits = torch.nan_to_num(logits, nan=0.0)
         # mask：无效位置 -inf
         logits = logits.masked_fill(~mask, float("-inf"))
         return logits
