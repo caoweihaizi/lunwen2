@@ -73,7 +73,7 @@ def main() -> int:
         env.use_uncertainty = use_uncertainty
         env.reset()
         actor = Actor(n_global=3, hidden=64).to(device)
-        critic = Critic(n_global_state=env.n_edges * 3, hidden=128).to(device)
+        critic = Critic(n_global_state=env.n_edges * 3, n_sat=env.n_sat, hidden=128, n_global=3).to(device)
         t0 = time.time()
         actor, critic = train_mappo(env, actor, critic, log, epochs=50, n_steps=500,
                                      lr=1e-3, device=device)

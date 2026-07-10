@@ -50,15 +50,36 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    """centralized critic：全局链路状态 → V。"""
+    """centralized critic：全局状态 + (i,d) 编码 → 该 (i,d) 的 V。
 
-    def __init__(self, n_global_state, hidden=128):
+    标准多智能体 MAPPO：每个 agent (i,d) 独立估值，adv 按每个 (i,d) 算。
+    """
+
+    def __init__(self, n_global_state, n_sat=264, hidden=128, n_global=3):
         super().__init__()
-        self.net = nn.Sequential(
+        # 全局状态编码
+        self.state_net = nn.Sequential(
             nn.Linear(n_global_state, hidden), nn.ReLU(),
             nn.Linear(hidden, hidden), nn.ReLU(),
+        )
+        # (i,d) 编码：current_sat + dst_sat
+        self.sat_embed = nn.Embedding(n_sat, 16)
+        # 融合：全局状态 + (i,d) embedding + commodity global 特征
+        self.head = nn.Sequential(
+            nn.Linear(hidden + 16 * 2 + n_global, hidden), nn.ReLU(),
             nn.Linear(hidden, 1),
         )
 
-    def forward(self, global_state):
-        return self.net(global_state).squeeze(-1)
+    def forward(self, global_state, cur_sat, dst_sat, global_feat):
+        """
+        global_state: (B, n_global_state) 全局链路状态
+        cur_sat: (B,) 当前卫星 id
+        dst_sat: (B,) 目的卫星 id
+        global_feat: (B, n_global) commodity 全局特征
+        返回 (B,) 每个 (i,d) 的 V
+        """
+        s = self.state_net(global_state)  # (B, hidden)
+        cur_emb = self.sat_embed(cur_sat)  # (B, 16)
+        dst_emb = self.sat_embed(dst_sat)  # (B, 16)
+        combined = torch.cat([s, cur_emb, dst_emb, global_feat], dim=-1)
+        return self.head(combined).squeeze(-1)
