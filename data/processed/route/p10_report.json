@@ -1,14 +1,14 @@
 {
   "mucar": {
-    "train_time_s": 4442.456832885742,
-    "eval_mean_reward": -0.3665260705619518,
-    "eval_mean_drop": 0.040357495069676334,
+    "train_time_s": 11865.2053232193,
+    "eval_mean_reward": -0.3678409374743581,
+    "eval_mean_drop": 0.04167236198208262,
     "n_eval_steps": 1000
   },
   "point_mappo": {
-    "train_time_s": 4476.057770013809,
-    "eval_mean_reward": -0.36685776250877755,
-    "eval_mean_drop": 0.04068918701650212,
+    "train_time_s": 11396.03681397438,
+    "eval_mean_reward": -0.3681600182625855,
+    "eval_mean_drop": 0.04199144277030997,
     "n_eval_steps": 1000
   }
 }

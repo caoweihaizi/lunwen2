@@ -61,8 +61,14 @@ def collect_rollout(env, actor, critic, n_steps, device):
                 logits=logits.masked_fill(~m_safe, float("-inf")))
             action = dist.sample()
             logp = dist.log_prob(action)
-            # critic 对每个 (i,d) 估值
-            gstate = env.get_global_state()
+            # critic 对每个 (i,d) 估值（用全局统计量降维，避免 6000 维爆内存）
+            gstate_full = env.get_global_state()  # (n_edges*3,)
+            # 降维为统计量：均值/P95/max（carried/util/queue 各3）
+            gstate = np.array([
+                gstate_full[::3].mean(), np.percentile(gstate_full[::3], 95), gstate_full[::3].max(),
+                gstate_full[1::3].mean(), np.percentile(gstate_full[1::3], 95), gstate_full[1::3].max(),
+                gstate_full[2::3].mean(), gstate_full[2::3].max(),
+            ], dtype=np.float32)
             gstate_t = torch.from_numpy(gstate).unsqueeze(0).expand(len(kl), -1).to(device)
             values = critic(gstate_t, cur_t, dst_t, g_t)  # (n_comm,)
 
@@ -105,8 +111,8 @@ def compute_gae_per_agent(traj, gamma=0.99, lam=0.95):
     return traj
 
 
-def train_mappo(env, actor, critic, log, epochs=50, n_steps=200, lr=1e-3,
-                device="mps", clip=0.2, ent_coef=0.01, inner_epochs=4):
+def train_mappo(env, actor, critic, log, epochs=20, n_steps=200, lr=1e-3,
+                device="mps", clip=0.2, ent_coef=0.01, inner_epochs=2):
     opt_a = torch.optim.Adam(actor.parameters(), lr=lr)
     opt_c = torch.optim.Adam(critic.parameters(), lr=lr)
     for ep in range(epochs):
@@ -128,18 +134,29 @@ def train_mappo(env, actor, critic, log, epochs=50, n_steps=200, lr=1e-3,
         advs = (advs - advs.mean()) / (advs.std() + 1e-8)
         rets = np.array([it["ret"] for it in all_items])
 
+        # 打包成 batch tensor（批量化前向）
+        N = len(all_items)
+        g_all = torch.from_numpy(np.stack([it["global"] for it in all_items])).to(device)
+        e_all = torch.from_numpy(np.stack([it["edge"] for it in all_items])).to(device)
+        m_all = torch.from_numpy(np.stack([it["mask"] for it in all_items])).to(device)
+        a_all = torch.tensor([it["action"] for it in all_items]).to(device)
+        old_logp_all = torch.tensor([it["logp"] for it in all_items]).to(device)
+        cur_all = torch.tensor([it["cur_sat"] for it in all_items], dtype=torch.long).to(device)
+        dst_all = torch.tensor([it["dst_sat"] for it in all_items], dtype=torch.long).to(device)
+        adv_all = torch.from_numpy(advs).float().to(device)
+        ret_all = torch.from_numpy(rets).float().to(device)
+
         total_a = 0.0; total_v = 0.0; n = 0
+        batch_size = 256  # 小 batch 避免 critic 全局状态爆内存
+        n_gstate = 8  # 全局统计量维度
         for ie in range(inner_epochs):
-            for k, item in enumerate(all_items):
-                g = torch.from_numpy(item["global"]).unsqueeze(0).to(device)
-                e = torch.from_numpy(item["edge"]).unsqueeze(0).to(device)
-                m = torch.from_numpy(item["mask"]).unsqueeze(0).to(device)
-                a = torch.tensor([item["action"]]).to(device)
-                old_logp = torch.tensor([item["logp"]]).to(device)
-                cur = torch.tensor([item["cur_sat"]], dtype=torch.long).to(device)
-                dst = torch.tensor([item["dst_sat"]], dtype=torch.long).to(device)
-                adv = torch.tensor([advs[k]]).to(device)
-                ret = torch.tensor([rets[k]]).to(device)
+            for start in range(0, N, batch_size):
+                end = min(start + batch_size, N)
+                g = g_all[start:end]; e = e_all[start:end]; m = m_all[start:end]
+                a = a_all[start:end]; old = old_logp_all[start:end]
+                cur = cur_all[start:end]; dst = dst_all[start:end]
+                adv = adv_all[start:end]; ret = ret_all[start:end]
+                gs = torch.zeros(end - start, n_gstate).to(device)
 
                 # actor 更新
                 logits = actor(g, e, m)
@@ -147,18 +164,15 @@ def train_mappo(env, actor, critic, log, epochs=50, n_steps=200, lr=1e-3,
                 dist = torch.distributions.Categorical(
                     logits=logits.masked_fill(~m_safe, float("-inf")))
                 logp = dist.log_prob(a)
-                ratio = torch.exp(logp - old_logp)
+                ratio = torch.exp(logp - old)
                 a_loss = -(torch.min(ratio * adv, torch.clamp(ratio, 1 - clip, 1 + clip) * adv)).mean()
                 ent = dist.entropy().mean()
                 opt_a.zero_grad(); (a_loss - ent_coef * ent).backward()
                 torch.nn.utils.clip_grad_norm_(actor.parameters(), 1.0)
                 opt_a.step()
 
-                # critic 更新（每个 (i,d) 独立 V）
-                # 需 global_state —— 从 item 无法直接取，用 env 当前状态近似
-                # 简化：用零向量（critic 的 state_net 会处理）
-                gstate = torch.zeros(1, env.n_edges * 3).to(device)
-                v = critic(gstate, cur, dst, g)
+                # critic 更新
+                v = critic(gs, cur, dst, g)
                 v_loss = F.mse_loss(v, ret)
                 opt_c.zero_grad(); v_loss.backward()
                 torch.nn.utils.clip_grad_norm_(critic.parameters(), 1.0)
